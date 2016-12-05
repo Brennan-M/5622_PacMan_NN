@@ -16,6 +16,7 @@ class Species(object):
         self.num_networks_per_gen = num_networks_per_gen
         self.organism_topology = topology
         self.generations = {}
+        self.max_fitness_score = None
 
 
     def evolve(self):
@@ -71,26 +72,34 @@ class Species(object):
         
         self.pretty_print_gen_id(generation_number)
 
-        for network_num, network in self.generations[generation_number].items():
-            # Run the game with each network in the current generation
-            results = flpy.main(network)
+        neural_networks = self.generations[generation_number].values()
+        # Run the game with each network in the current generation
+        app = flpy.FlappyBirdApp(neural_networks)
+        app.play()
+        birds = app.birds
 
+        for network_num, bird in enumerate(birds):
+            print bird
+            crashInfo = bird.crashInfo
             distance_from_pipes = 0
-            if (results['y'] < results['upperPipes'][0]['y']):
-                distance_from_pipes = abs(results['y'] - results['upperPipes'][0]['y'])
-            elif (results['y'] > results['upperPipes'][0]['y']):
-                distance_from_pipes = abs(results['y'] - results['lowerPipes'][0]['y'])
-
+            if (bird.y < crashInfo['upperPipes'][0]['y']):
+                distance_from_pipes = abs(bird.y - crashInfo['upperPipes'][0]['y'])
+            elif (bird.y > crashInfo['upperPipes'][0]['y']):
+                distance_from_pipes = abs(bird.y - crashInfo['lowerPipes'][0]['y'])
 
             # A couple different fitness functions to mess with
+            # fitness_score = (crashInfo['score']*1000) + \
+            #                crashInfo['distance'] - \
+            #                distance_from_pipes - \
+            #                (crashInfo['energy'] * 2)
 
-            # fitness_score = (results['distance']) - (distance_from_pipes * 2)
+            fitness_score = ((crashInfo['score'] * 5000) 
+                              + (crashInfo['distance'])
+                              - (distance_from_pipes * 3))
 
-            fitness_score = ((results['score'] * 5000) 
-                             + (results['distance'])
-                             - (distance_from_pipes * 3))
+            neural_networks[network_num].set_fitness(fitness_score)
 
-            network.set_fitness(fitness_score)
+
             print 'Network', network_num, 'scored', fitness_score
             generation_score += fitness_score
 
@@ -115,4 +124,5 @@ class Species(object):
         print "---  Generation:", gen_id, " ---"
         print "-----------------------"
         print "\n"
+
 
